@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>Coloring Book Creator AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9A84C;--gold-light:#F0DFA0;--gold-dark:#8A6A22;--gold-dim:rgba(201,168,76,0.14);
+  --cream:#FAF7F2;--ink:#1A1714;--ink-soft:#4A4540;--ink-muted:#8A8480;
+  --surface:#FFFFFF;--warm:#F5F1EB;
+  --border:rgba(26,23,20,0.08);--border-gold:rgba(201,168,76,0.22);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;align-items:center;}
+#gate{position:fixed;inset:0;background:var(--ink);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;}
+#gate.hidden{display:none;}
+.gate-box{background:var(--surface);border-radius:20px;padding:48px 40px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,0.4);}
+.gate-icon{width:56px;height:56px;background:var(--ink);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;}
+.gate-box h2{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:400;color:var(--ink);margin-bottom:8px;}
+.gate-box p{font-size:13.5px;color:var(--ink-muted);line-height:1.6;margin-bottom:28px;}
+.gate-input-wrap{position:relative;margin-bottom:12px;}
+#accessCode{text-align:center;font-size:15px;letter-spacing:0.12em;text-transform:uppercase;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:13px 16px;width:100%;outline:none;transition:border-color 0.18s,box-shadow 0.18s;font-family:'DM Sans',sans-serif;color:var(--ink);}
+#accessCode:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,0.12);}
+#accessCode.error{border-color:#E24B4A;box-shadow:0 0 0 3px rgba(226,75,74,0.1);}
+.gate-err{font-size:12px;color:#A32D2D;margin-bottom:12px;min-height:18px;}
+.gate-btn{width:100%;padding:14px;background:var(--ink);color:var(--gold-light);border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;letter-spacing:0.04em;cursor:pointer;transition:all 0.2s;}
+.gate-btn:hover{background:#2C2820;}
+.gate-note{font-size:11px;color:var(--ink-muted);margin-top:16px;line-height:1.5;}
+.hero{width:100%;background:var(--ink);padding:64px 24px 52px;text-align:center;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 55% at 50% 0%,rgba(201,168,76,0.13) 0%,transparent 70%);pointer-events:none;}
+.hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.3),transparent);}
+.eyebrow{font-size:10.5px;font-weight:500;letter-spacing:0.22em;text-transform:uppercase;color:var(--gold);margin-bottom:18px;}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(40px,6.5vw,68px);font-weight:300;color:#FAF7F2;line-height:1.08;margin-bottom:18px;letter-spacing:-0.02em;}
+.hero h1 em{font-style:italic;color:var(--gold-light);}
+.hero-sub{font-size:14.5px;color:rgba(250,247,242,0.5);max-width:480px;margin:0 auto;line-height:1.65;font-weight:300;}
+.hero-line{width:36px;height:1px;background:var(--gold);opacity:0.4;margin:26px auto 0;}
+.hero-saved-btn{display:inline-flex;align-items:center;gap:8px;margin-top:12px;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);color:var(--gold-light);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:8px 18px;border-radius:100px;cursor:pointer;letter-spacing:0.04em;transition:background 0.2s;}
+.hero-saved-btn:hover{background:rgba(201,168,76,0.22);}
+.save-badge{background:var(--gold);color:var(--ink);border-radius:100px;font-size:10px;font-weight:600;padding:1px 6px;margin-left:2px;display:none;}
+.save-badge.visible{display:inline;}
+.spec-strip{width:100%;background:rgba(201,168,76,0.08);border-bottom:1px solid rgba(201,168,76,0.18);padding:10px 24px;display:flex;justify-content:center;gap:28px;flex-wrap:wrap;}
+.spec-item{font-family:'DM Sans',sans-serif;font-size:11.5px;color:var(--gold-dark);letter-spacing:0.04em;display:flex;align-items:center;gap:6px;}
+.main{width:100%;max-width:860px;padding:40px 24px 80px;}
+.card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden;box-shadow:0 2px 32px rgba(26,23,20,0.05);}
+.form-body{padding:32px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.fg{display:flex;flex-direction:column;gap:7px;}
+.fg.full{grid-column:1/-1;}
+label.lbl{font-size:11px;font-weight:500;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink-soft);}
+label.lbl .req{color:var(--gold-dark);margin-left:2px;}
+label.lbl .opt{font-weight:300;letter-spacing:0;text-transform:none;color:var(--ink-muted);font-size:10.5px;margin-left:4px;}
+input[type=text],select,textarea{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:11px 14px;outline:none;transition:border-color 0.18s,box-shadow 0.18s;width:100%;-webkit-appearance:none;}
+input[type=text]::placeholder,textarea::placeholder{color:var(--ink-muted);}
+input[type=text]:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,0.11);background:#fff;}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%238A8480' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:34px;cursor:pointer;}
+textarea{resize:vertical;min-height:76px;line-height:1.55;}
+.hint-label{font-size:10.5px;color:var(--ink-muted);margin-top:4px;margin-bottom:3px;}
+.hint-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.hc{font-size:11.5px;padding:5px 11px;border-radius:100px;background:var(--warm);border:1px solid var(--border-gold);color:var(--ink-soft);cursor:pointer;transition:all 0.15s;user-select:none;}
+.hc:hover{background:var(--gold-dim);border-color:var(--gold);color:var(--ink);}
+.faith-row{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--warm);border-radius:10px;border:1px solid var(--border-gold);}
+.faith-txt{flex:1;}
+.faith-txt strong{font-size:13.5px;font-weight:500;display:block;color:var(--ink);}
+.faith-txt span{font-size:12px;color:var(--ink-muted);margin-top:2px;display:block;}
+.tog{position:relative;width:44px;height:24px;flex-shrink:0;}
+.tog input{display:none;}
+.tog-track{display:block;width:44px;height:24px;background:#D8D4CC;border-radius:100px;cursor:pointer;transition:background 0.2s;position:relative;}
+.tog-track::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.14);}
+.tog input:checked+.tog-track{background:var(--gold);}
+.tog input:checked+.tog-track::after{transform:translateX(20px);}
+.divider{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:6px 0;}
+.divider span{font-size:10.5px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-muted);white-space:nowrap;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.form-footer{padding:0 32px 32px;}
+.submit-btn{width:100%;padding:15px 24px;background:var(--ink);color:var(--gold-light);border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;letter-spacing:0.04em;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:10px;}
+.submit-btn:hover{background:#2C2820;transform:translateY(-1px);box-shadow:0 8px 28px rgba(26,23,20,0.18);}
+.submit-btn:active{transform:translateY(0);}
+.submit-btn:disabled{opacity:0.55;cursor:not-allowed;transform:none;box-shadow:none;}
+.output-section{margin-top:28px;display:none;}
+.output-section.visible{display:block;}
+.out-header{padding:20px 32px;background:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.out-badge{font-size:10.5px;font-weight:500;letter-spacing:0.13em;text-transform:uppercase;color:var(--gold);background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.24);padding:4px 10px;border-radius:100px;}
+.out-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;color:#FAF7F2;margin-top:5px;}
+.out-actions{display:flex;gap:8px;}
+.action-btn{background:rgba(250,247,242,0.07);border:1px solid rgba(250,247,242,0.14);color:rgba(250,247,242,0.65);font-family:'DM Sans',sans-serif;font-size:11.5px;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.action-btn:hover{background:rgba(250,247,242,0.13);color:#FAF7F2;}
+.loading{padding:60px 32px;text-align:center;display:none;}
+.loading.visible{display:block;}
+.spinner{width:34px;height:34px;border:2px solid rgba(201,168,76,0.15);border-top-color:var(--gold);border-radius:50%;animation:spin 0.75s linear infinite;margin:0 auto 18px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading strong{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--ink);display:block;margin-bottom:6px;}
+.loading p{font-size:13px;color:var(--ink-muted);}
+.loading-steps{display:flex;justify-content:center;gap:6px;margin-top:18px;flex-wrap:wrap;}
+.ls{font-size:11px;padding:5px 12px;border-radius:100px;background:var(--warm);border:1px solid var(--border-gold);color:var(--ink-soft);transition:all 0.3s;}
+.ls.done{background:var(--gold-dim);color:var(--gold-dark);}
+.out-body{padding:20px;}
+.sec-card{border-radius:14px;overflow:hidden;margin-bottom:14px;border:1px solid var(--border);box-shadow:0 2px 16px rgba(26,23,20,0.04);}
+.sec-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;gap:12px;}
+.sec-head-left{display:flex;align-items:center;gap:10px;}
+.sec-icon{font-size:18px;line-height:1;}
+.sec-title{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:500;color:#FAF7F2;}
+.sec-copy-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;padding:5px 14px;border-radius:20px;cursor:pointer;transition:all 0.15s;white-space:nowrap;letter-spacing:0.03em;}
+.sec-copy-btn:hover{background:rgba(255,255,255,0.18);color:#fff;}
+.sec-copy-btn.done{background:rgba(59,130,46,0.3);border-color:rgba(59,130,46,0.5);color:#9FE1CB;}
+.sec-body{padding:20px 24px;background:var(--surface);font-size:14px;line-height:1.75;color:var(--ink-soft);}
+.sec-body p{margin-bottom:10px;}
+.sec-body ul{padding-left:20px;margin-bottom:10px;}
+.sec-body li{margin-bottom:6px;}
+.sec-body strong{font-weight:500;color:var(--ink);}
+.sec-body blockquote{border-left:3px solid var(--gold);padding:8px 14px;background:var(--warm);border-radius:0 8px 8px 0;margin:12px 0;font-style:italic;}
+.sec-body hr{border:none;border-top:1px solid var(--border);margin:16px 0;}
+.sub-head{font-size:10.5px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold-dark);margin:18px 0 8px;padding-top:4px;}
+
+/* ── PAGE CARD — the core coloring page unit ── */
+.page-card{border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+.page-card-head{background:var(--warm);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.page-card-num{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:var(--gold-dark);letter-spacing:0.08em;text-transform:uppercase;}
+.page-card-title{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:500;color:var(--ink);flex:1;padding:0 12px;}
+.page-card-body{padding:14px 16px;background:var(--surface);}
+.page-desc{font-size:13.5px;color:var(--ink-soft);line-height:1.65;margin-bottom:12px;}
+/* scripture strip */
+.scripture-strip{background:rgba(201,168,76,0.08);border:1px solid var(--border-gold);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--ink-soft);font-style:italic;}
+.scripture-strip strong{font-style:normal;color:var(--gold-dark);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;display:block;margin-bottom:4px;}
+/* prompt blocks inside page card */
+.prompt-block{background:var(--ink);border-radius:10px;padding:13px 15px;margin-bottom:8px;position:relative;}
+.prompt-block:last-child{margin-bottom:0;}
+.prompt-block-label{font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.prompt-block-label span{background:rgba(201,168,76,0.18);border-radius:4px;padding:2px 7px;}
+.prompt-block-text{font-size:12.5px;color:rgba(250,247,242,0.85);line-height:1.65;padding-right:64px;font-family:'DM Sans',monospace;}
+.prompt-block-copy{position:absolute;top:13px;right:13px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--gold-light);font-size:10px;padding:4px 10px;border-radius:5px;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.prompt-block-copy:hover{background:rgba(201,168,76,0.3);}
+.prompt-block-copy.done{background:rgba(59,130,46,0.3);border-color:rgba(59,130,46,0.5);color:#9FE1CB;}
+
+/* ── COLOUR SWATCHES — clickable full-width rows ── */
+.swatch-grid{display:flex;flex-direction:column;gap:8px;margin:8px 0 16px;}
+.swatch{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--warm);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.15s;user-select:none;width:100%;}
+.swatch:hover{border-color:var(--gold);background:var(--gold-dim);}
+.swatch-dot{width:28px;height:28px;border-radius:50%;border:2px solid rgba(0,0,0,0.1);flex-shrink:0;}
+.swatch-left{display:flex;flex-direction:column;gap:2px;min-width:120px;}
+.swatch-name{font-size:12px;color:var(--ink);font-weight:600;letter-spacing:0.01em;}
+.swatch-hex{font-size:11px;color:var(--ink-muted);font-family:'DM Sans',monospace;}
+.swatch-reason{font-size:12.5px;color:var(--ink-soft);line-height:1.5;flex:1;}
+.swatch-copy-hint{font-size:10px;color:var(--gold-dark);opacity:0;transition:opacity 0.15s;white-space:nowrap;flex-shrink:0;}
+.swatch:hover .swatch-copy-hint{opacity:1;}
+.swatch-copied-msg{font-size:10px;color:var(--gold-dark);display:none;flex-shrink:0;font-weight:600;}
+.swatch.copied .swatch-copied-msg{display:block;}
+.swatch.copied .swatch-copy-hint{display:none;}
+
+/* ── COVER PROMPT BOXES ── */
+.ai-prompt-box{background:var(--ink);border-radius:10px;padding:14px 16px;margin:8px 0 14px;position:relative;}
+.ai-prompt-label{font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;}
+.ai-prompt-text{font-size:13px;color:rgba(250,247,242,0.85);line-height:1.65;padding-right:64px;font-family:'DM Sans',monospace;}
+.ai-prompt-copy{position:absolute;top:14px;right:14px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--gold-light);font-size:10px;padding:4px 10px;border-radius:5px;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;}
+.ai-prompt-copy:hover{background:rgba(201,168,76,0.3);}
+
+/* ── KDP SETTINGS BOX ── */
+.settings-box{background:var(--warm);border:1px solid var(--border-gold);border-radius:10px;padding:16px 18px;margin-bottom:14px;}
+.settings-box .settings-title{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:10px;}
+.settings-row{display:flex;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.settings-row:last-child{border-bottom:none;}
+.settings-key{color:var(--ink-muted);min-width:160px;font-size:12px;}
+.settings-val{color:var(--ink);font-weight:500;}
+
+/* ── KW CHIPS ── */
+.kw-grid{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 14px;}
+.kw-chip{font-size:12px;padding:6px 14px;background:var(--warm);border:1px solid var(--border-gold);border-radius:100px;color:var(--ink-soft);cursor:pointer;transition:all 0.15s;}
+.kw-chip:hover{background:var(--gold-dim);border-color:var(--gold);color:var(--ink);}
+
+/* ── STEP CARDS ── */
+.step-card{display:flex;gap:14px;padding:14px;background:var(--warm);border-radius:10px;border:1px solid var(--border);margin-bottom:10px;}
+.step-badge{width:30px;height:30px;background:var(--ink);color:var(--gold-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;}
+.step-content strong{font-size:13.5px;font-weight:500;color:var(--ink);display:block;margin-bottom:3px;}
+.step-content p{font-size:13px;color:var(--ink-soft);line-height:1.5;margin:0;}
+
+/* ── SAVED PANEL ── */
+.saved-overlay{position:fixed;inset:0;background:rgba(26,23,20,0.5);z-index:200;opacity:0;pointer-events:none;transition:opacity 0.25s;}
+.saved-overlay.open{opacity:1;pointer-events:all;}
+.saved-panel{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:100vw;background:var(--surface);z-index:201;transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(26,23,20,0.18);}
+.saved-panel.open{transform:translateX(0);}
+.saved-panel-head{background:var(--ink);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.saved-panel-head h3{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:#FAF7F2;margin:0;}
+.saved-close{background:none;border:none;color:rgba(250,247,242,0.55);cursor:pointer;font-size:24px;line-height:1;padding:2px 6px;transition:color 0.15s;}
+.saved-close:hover{color:#FAF7F2;}
+.saved-list{flex:1;overflow-y:auto;padding:16px;}
+.saved-empty{text-align:center;padding:48px 20px;color:var(--ink-muted);}
+.saved-empty strong{display:block;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--ink-soft);margin-bottom:8px;}
+.saved-empty p{font-size:13px;line-height:1.6;}
+.saved-item{border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;background:var(--cream);}
+.saved-item:hover{border-color:var(--gold);}
+.saved-item-title{font-size:13.5px;font-weight:500;color:var(--ink);margin-bottom:4px;}
+.saved-item-meta{font-size:11.5px;color:var(--ink-muted);}
+.saved-item-btns{display:flex;gap:8px;margin-top:10px;}
+.sav-load{flex:1;padding:7px 12px;background:var(--ink);color:var(--gold-light);border:none;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;}
+.sav-del{padding:7px 12px;background:none;border:1px solid var(--border);color:var(--ink-muted);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;}
+.sav-del:hover{border-color:#E24B4A;color:#A32D2D;}
+
+@media(max-width:580px){
+  .form-grid{grid-template-columns:1fr;}
+  .form-body,.form-footer{padding:22px 18px;}
+  .out-header{padding:16px 18px;}
+  .out-body{padding:12px;}
+  .sec-body{padding:16px 18px;}
+  .gate-box{padding:36px 24px;}
+  .spec-strip{gap:14px;}
+  .settings-key{min-width:120px;}
+}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-box">
+    <div class="gate-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="5" y="11" width="14" height="10" rx="2" stroke="#C9A84C" stroke-width="1.5"/>
+        <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="#C9A84C" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="12" cy="16" r="1.5" fill="#C9A84C"/>
+      </svg>
+    </div>
+    <h2>Enter Your Access Code</h2>
+    <p>This tool is exclusively for Coloring Book Creator AI members. Enter the access code from your purchase confirmation to continue.</p>
+    <div class="gate-input-wrap">
+      <input type="text" id="accessCode" placeholder="ENTER CODE HERE" autocomplete="off" onkeydown="if(event.key==='Enter')unlock()"/>
+    </div>
+    <div class="gate-err" id="gateErr"></div>
+    <button class="gate-btn" onclick="unlock()">Access My Tool</button>
+    <p class="gate-note">Access code was sent to your email after purchase.<br>Need help? <a href="mailto:hello@faithdrivenbosses.com" style="color:var(--gold);text-decoration:none;">hello@faithdrivenbosses.com</a></p>
+  </div>
+</div>
+
+<div id="app" style="width:100%;display:flex;flex-direction:column;align-items:center;">
+<div class="hero">
+  <p class="eyebrow">AI Publishing System</p>
+  <h1>Coloring Book Creator <em>AI</em></h1>
+  <p class="hero-sub">From theme to sellable coloring book — page descriptions, ready-to-paste AI art prompts, and your full Amazon KDP publishing kit. All in one place.</p>
+  <div class="hero-line"></div>
+  <button class="hero-saved-btn" onclick="toggleSavedPanel()">
+    <svg width="12" height="14" viewBox="0 0 12 14" fill="none"><path d="M1 1h10v12l-5-3-5 3V1z" stroke="#F0DFA0" stroke-width="1.2" stroke-linejoin="round"/></svg>
+    Saved Blueprints<span class="save-badge" id="saveBadge"></span>
+  </button>
+</div>
+
+<div class="spec-strip">
+  <span class="spec-item">📐 KDP Size: 8.5 × 11 inches</span>
+  <span class="spec-item">📄 Single-sided pages only</span>
+  <span class="spec-item">🖨️ 300 DPI print-ready</span>
+  <span class="spec-item">⬜ Bleed: 0.125 inch all sides</span>
+</div>
+
+<main class="main">
+  <div class="card">
+    <div class="form-body">
+      <div class="form-grid">
+        <div class="fg">
+          <label class="lbl">Coloring Book Theme <span class="req">*</span></label>
+          <input type="text" id="theme" placeholder="e.g. Armor of God for women"/>
+          <div class="hint-label">Quick select:</div>
+          <div class="hint-chips">
+            <span class="hc" onclick="setField('theme',this)">Armor of God</span>
+            <span class="hc" onclick="setField('theme',this)">Women of the Bible</span>
+            <span class="hc" onclick="setField('theme',this)">Fruits of the Spirit</span>
+            <span class="hc" onclick="setField('theme',this)">Psalms &amp; Praise</span>
+            <span class="hc" onclick="setField('theme',this)">Faith &amp; Flowers</span>
+            <span class="hc" onclick="setField('theme',this)">Prayer &amp; Peace</span>
+            <span class="hc" onclick="setField('theme',this)">Healing &amp; Restoration</span>
+            <span class="hc" onclick="setField('theme',this)">Children's Bible Stories</span>
+            <span class="hc" onclick="setField('theme',this)">God's Creation</span>
+            <span class="hc" onclick="setField('theme',this)">Christmas &amp; Advent</span>
+            <span class="hc" onclick="setField('theme',this)">Easter &amp; Resurrection</span>
+            <span class="hc" onclick="setField('theme',this)">Botanical &amp; Scripture</span>
+            <span class="hc" onclick="setField('theme',this)">Mandalas &amp; Worship</span>
+            <span class="hc" onclick="setField('theme',this)">Self-Care &amp; Wellness</span>
+            <span class="hc" onclick="setField('theme',this)">The Lord's Prayer</span>
+            <span class="hc" onclick="setField('theme',this)">Encouragement &amp; Hope</span>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="lbl">Target Audience <span class="req">*</span></label>
+          <input type="text" id="audience" placeholder="e.g. Adult Christian women"/>
+          <div class="hint-label">Quick select:</div>
+          <div class="hint-chips">
+            <span class="hc" onclick="setField('audience',this)">Adult women</span>
+            <span class="hc" onclick="setField('audience',this)">Children ages 4–8</span>
+            <span class="hc" onclick="setField('audience',this)">Children ages 8–12</span>
+            <span class="hc" onclick="setField('audience',this)">Teens &amp; young adults</span>
+            <span class="hc" onclick="setField('audience',this)">Seniors &amp; retirees</span>
+            <span class="hc" onclick="setField('audience',this)">Homeschool families</span>
+            <span class="hc" onclick="setField('audience',this)">Sunday school classes</span>
+            <span class="hc" onclick="setField('audience',this)">Women in ministry</span>
+            <span class="hc" onclick="setField('audience',this)">Anxiety &amp; stress relief</span>
+            <span class="hc" onclick="setField('audience',this)">Prayer warriors</span>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="lbl">Coloring Book Style</label>
+          <select id="style">
+            <option>Detailed Intricate (adult coloring)</option>
+            <option>Simple Bold Lines (children / beginners)</option>
+            <option>Mandala &amp; Geometric Patterns</option>
+            <option>Botanical &amp; Floral Illustrations</option>
+            <option>Whimsical &amp; Hand-Drawn</option>
+            <option>Scripture Lettering &amp; Art</option>
+            <option>Mixed — Illustrations + Lettering</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="lbl">Number of Coloring Pages</label>
+          <select id="numPages">
+            <option value="20">20 pages — Mini coloring book</option>
+            <option value="30" selected>30 pages — Standard (popular)</option>
+            <option value="50">50 pages — Premium coloring book</option>
+          </select>
+        </div>
+        <div class="divider"><span>Content settings</span></div>
+        <div class="fg full">
+          <label class="lbl">Additional Notes <span class="opt">(optional)</span></label>
+          <textarea id="notes" placeholder="Specific scriptures, colour schemes, characters, style references, or anything else…"></textarea>
+        </div>
+        <div class="fg full">
+          <div class="faith-row">
+            <div class="faith-txt">
+              <strong>Faith-Based Content</strong>
+              <span>Add a scripture verse (NKJV) to every coloring page</span>
+            </div>
+            <label class="tog">
+              <input type="checkbox" id="faith" checked/>
+              <span class="tog-track"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="form-footer">
+      <button class="submit-btn" id="genBtn" onclick="generate()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Generate My Coloring Book Blueprint
+      </button>
+    </div>
+  </div>
+
+  <div class="output-section" id="outputSection">
+    <div class="card">
+      <div class="out-header">
+        <div>
+          <span class="out-badge">Complete Blueprint</span>
+          <p class="out-title" id="outTitle">Your Coloring Book</p>
+        </div>
+        <div class="out-actions">
+          <button class="action-btn" id="saveBtn" onclick="saveBlueprint()">Save Blueprint</button>
+          <button class="action-btn" id="copyBtn" onclick="copyAll()">Copy all</button>
+          <button class="action-btn" onclick="downloadBlueprint()">⬇ Download</button>
+        </div>
+      </div>
+      <div class="loading" id="loadingEl">
+        <div class="spinner"></div>
+        <strong>Building your coloring book blueprint…</strong>
+        <p>Generating page descriptions, AI art prompts &amp; your KDP kit</p>
+        <div class="loading-steps">
+          <span class="ls" id="ls1">Product concept</span>
+          <span class="ls" id="ls2">Page descriptions + prompts</span>
+          <span class="ls" id="ls3">Cover design</span>
+          <span class="ls" id="ls4">KDP publishing kit</span>
+        </div>
+      </div>
+      <div class="out-body" id="outBody"></div>
+    </div>
+  </div>
+</main>
+</div>
+
+<div class="saved-overlay" id="savedOverlay" onclick="toggleSavedPanel()"></div>
+<div class="saved-panel" id="savedPanel">
+  <div class="saved-panel-head">
+    <h3>Saved Blueprints</h3>
+    <button class="saved-close" onclick="toggleSavedPanel()">&#x2715;</button>
+  </div>
+  <div class="saved-list" id="savedList"></div>
+</div>
+
+<script>
+const ACCESS_CODE='COLORBOSS';
+const SECTION_COLORS=['#2C3E50','#1B3A2F','#2D1F3D','#2A2010','#1A2D1A','#1A2D1A','#1A1F35','#2D1A1A'];
+const SECTION_ICONS=['🎨','🎯','📐','🖌️','🖼️','🖼️','💰','🚀'];
+
+function unlock(){
+  const val=document.getElementById('accessCode').value.trim().toUpperCase();
+  const err=document.getElementById('gateErr');
+  const inp=document.getElementById('accessCode');
+  if(val===ACCESS_CODE){
+    document.getElementById('gate').classList.add('hidden');
+    sessionStorage.setItem('cbcai_access','1');
+  }else{
+    inp.classList.add('error');
+    err.textContent='Incorrect code. Check your purchase confirmation email and try again.';
+    setTimeout(()=>inp.classList.remove('error'),1500);
+  }
+}
+if(sessionStorage.getItem('cbcai_access')==='1'){document.getElementById('gate').classList.add('hidden');}
+
+function setField(id,el){document.getElementById(id).value=el.textContent.replace(/&amp;/g,'&');}
+
+function inline(t){
+  return t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>');
+}
+
+const _copyStore={};
+let _copyId=0;
+function storeCopy(text){const id='cp'+(++_copyId);_copyStore[id]=text;return id;}
+
+function quickCopy(el,idOrText){
+  const text=_copyStore[idOrText]!==undefined?_copyStore[idOrText]:(idOrText||'');
+  if(!text)return;
+  navigator.clipboard.writeText(text).then(()=>{
+    const orig=el.textContent;el.textContent='Copied ✓';el.classList.add('done');
+    setTimeout(()=>{el.textContent=orig;el.classList.remove('done');},2000);
+  }).catch(()=>{
+    const ta=document.createElement('textarea');
+    ta.value=text;ta.style.cssText='position:fixed;opacity:0;';
+    document.body.appendChild(ta);ta.focus();ta.select();
+    try{document.execCommand('copy');}catch(e){}
+    document.body.removeChild(ta);
+    const orig=el.textContent;el.textContent='Copied ✓';
+    setTimeout(()=>el.textContent=orig,2000);
+  });
+}
+
+// ── RENDER PAGES SECTION (Section 4 — the main one) ──────────────────────
+// Each page block looks like:
+// ### Page N: Title
+// **Description:** ...
+// **Scripture:** ... (faith only)
+// **Midjourney Prompt:**
+// ```prompt text```
+// **DALL-E Prompt:**
+// ```prompt text```
+function renderPagesSection(text){
+  // Split on ### Page N or ## Page N headings
+  const blocks = text.split(/\n(?=###?\s*Page\s+\d+)/i).filter(b=>b.trim());
+  if(blocks.length < 2){
+    // Fallback — just render as plain text
+    return '<div class="sec-body">'+renderDefault(text)+'</div>';
+  }
+  let html='<div class="sec-body" style="padding:16px;">';
+  // First block might be intro text before pages start
+  const firstIsPage = /^###?\s*Page\s+\d+/i.test(blocks[0].trim());
+  if(!firstIsPage){
+    html+=`<p style="margin-bottom:14px;">${inline(blocks[0].trim())}</p>`;
+  }
+  const pageBlocks = firstIsPage ? blocks : blocks.slice(1);
+  for(const block of pageBlocks){
+    const lines=block.trim().split('\n');
+    const headLine=lines[0]||'';
+    const pageMatch=headLine.match(/Page\s+(\d+)[:\s—–-]+(.+)/i);
+    const pageNum=pageMatch?pageMatch[1]:'?';
+    const pageTitle=pageMatch?pageMatch[2].replace(/\*\*/g,'').trim():headLine.replace(/^#+\s*/,'');
+    const rest=lines.slice(1).join('\n');
+
+    // Extract description, scripture, and prompts
+    let desc='', scripture='', mjPrompt='', dallePrompt='';
+    // Description
+    const descM=rest.match(/\*\*Description[:\s*]*\*\*[:\s]*([\s\S]*?)(?=\*\*Scripture|\*\*Midjourney|\*\*DALL|$)/i);
+    if(descM) desc=descM[1].trim();
+    // Scripture (faith-based)
+    const scripM=rest.match(/\*\*Scripture[:\s*]*\*\*[:\s]*([\s\S]*?)(?=\*\*Midjourney|\*\*DALL|$)/i);
+    if(scripM) scripture=scripM[1].trim();
+    // Midjourney prompt — between ``` fences or after the label
+    const mjM=rest.match(/\*\*Midjourney[^*]*\*\*[:\s]*(?:```[a-z]*\n?)?([\s\S]*?)(?:```\s*)?(?=\*\*DALL|\*\*Canva|###|$)/i);
+    if(mjM) mjPrompt=mjM[1].replace(/```/g,'').trim();
+    // DALL-E prompt
+    const dalleM=rest.match(/\*\*DALL[^*]*\*\*[:\s]*(?:```[a-z]*\n?)?([\s\S]*?)(?:```\s*)?(?=\*\*Midjourney|\*\*Canva|###|$)/i);
+    if(dalleM) dallePrompt=dalleM[1].replace(/```/g,'').trim();
+
+    const mjId=mjPrompt?storeCopy(mjPrompt):'';
+    const dalleId=dallePrompt?storeCopy(dallePrompt):'';
+
+    html+=`<div class="page-card">
+      <div class="page-card-head">
+        <span class="page-card-num">Page ${pageNum}</span>
+        <span class="page-card-title">${inline(pageTitle)}</span>
+      </div>
+      <div class="page-card-body">
+        ${desc?`<p class="page-desc">${inline(desc)}</p>`:''}
+        ${scripture?`<div class="scripture-strip"><strong>📖 Scripture</strong>${inline(scripture)}</div>`:''}
+        ${mjPrompt?`<div class="prompt-block">
+          <div class="prompt-block-label"><span>Midjourney Prompt</span></div>
+          <div class="prompt-block-text">${mjPrompt}</div>
+          <button class="prompt-block-copy" onclick="quickCopy(this,'${mjId}')">Copy</button>
+        </div>`:''}
+        ${dallePrompt?`<div class="prompt-block">
+          <div class="prompt-block-label"><span>DALL-E / ChatGPT Prompt</span></div>
+          <div class="prompt-block-text">${dallePrompt}</div>
+          <button class="prompt-block-copy" onclick="quickCopy(this,'${dalleId}')">Copy</button>
+        </div>`:''}
+      </div>
+    </div>`;
+  }
+  html+='</div>';
+  return html;
+}
+
+// ── RENDER COVER SECTION ──────────────────────────────────────────────────
+function renderCoverSection(text){
+  const lines=text.split('\n');
+  let html='<div class="sec-body">';
+  let inAiBox=false,aiLabel='',aiText='',inSwatchGrid=false;
+  const flushAi=()=>{
+    if(aiLabel&&aiText){
+      const id=storeCopy(aiText);
+      html+=`<div class="ai-prompt-box"><div class="ai-prompt-label">${aiLabel}</div><div class="ai-prompt-text">${aiText}</div><button class="ai-prompt-copy" onclick="quickCopy(this,'${id}')">Copy</button></div>`;
+      aiLabel='';aiText='';inAiBox=false;
+    }
+  };
+  const flushSwatch=()=>{if(inSwatchGrid){html+='</div>';inSwatchGrid=false;}};
+  for(const l of lines){
+    if(!l.trim()){if(inAiBox&&aiText)flushAi();flushSwatch();continue;}
+    const isAiLabel=l.match(/\*\*(ChatGPT|DALL|Midjourney|Canva\s*AI)[^*]*\*\*/i)||l.match(/^#{3,4}\s*(ChatGPT|DALL|Midjourney|Canva\s*AI)/i);
+    const isHex=l.match(/#([0-9A-Fa-f]{6})/);
+    if(isAiLabel){
+      flushAi();flushSwatch();
+      aiLabel=l.replace(/^#+\s*/,'').replace(/\*\*/g,'').replace(/:$/,'').trim();
+      inAiBox=true;aiText='';
+    } else if(inAiBox&&!l.match(/^#{1,4}\s/)&&!l.match(/^```/)){
+      if(aiText)aiText+=' '+l.replace(/```/g,'').trim();
+      else aiText=l.replace(/```/g,'').trim();
+    } else if(isHex&&l.match(/^[-*]\s/)){
+      flushAi();
+      const hexMatch=l.match(/#([0-9A-Fa-f]{6})/g);
+      const hex=hexMatch?hexMatch[0]:'#000000';
+      // Name is before the colon+hex: "- Deep Aubergine: #3D0C4E — reason"
+      const nameMatch=l.match(/^[-*]\s+([^:]+):\s*#/);
+      const colourName=nameMatch?nameMatch[1].trim():'';
+      // Reason is after the em dash
+      const reasonMatch=l.match(/[—–-]{1,2}\s*(.+)$/);
+      const reason=reasonMatch?reasonMatch[1].trim():'';
+      const swatchId=storeCopy(hex);
+      if(!inSwatchGrid){html+='<div class="swatch-grid">';inSwatchGrid=true;}
+      html+=`<div class="swatch" onclick="copySwatch(this,'${swatchId}','${hex}')">
+        <div class="swatch-dot" style="background:${hex}"></div>
+        <div class="swatch-left">
+          <span class="swatch-name">${colourName}</span>
+          <span class="swatch-hex">${hex}</span>
+        </div>
+        ${reason?`<span class="swatch-reason">${inline(reason)}</span>`:''}
+        <span class="swatch-copy-hint">Click to copy</span>
+        <span class="swatch-copied-msg">✓ Copied!</span>
+      </div>`;
+    } else {
+      flushAi();flushSwatch();
+      if(l.match(/^#{2,4}\s/)) html+=`<div class="sub-head">${l.replace(/^#+\s*/,'')}</div>`;
+      else if(l.match(/^[-*]\s/)) html+=`<p>• ${inline(l.replace(/^[-*]\s/,''))}</p>`;
+      else if(l.match(/^```/)){/* skip fence lines */}
+      else html+=`<p>${inline(l)}</p>`;
+    }
+  }
+  flushAi();flushSwatch();
+  html+='</div>';
+  return html;
+}
+
+function copySwatch(el,id,hex){
+  const text=_copyStore[id]||hex;
+  navigator.clipboard.writeText(text).then(()=>{
+    el.classList.add('copied');
+    setTimeout(()=>el.classList.remove('copied'),2000);
+  });
+}
+
+// ── RENDER KDP SECTION ───────────────────────────────────────────────────
+function renderKDPSection(text){
+  const lines=text.split('\n');
+  let html='<div class="sec-body">';
+  let inChips=false,inSettings=false;
+  for(const l of lines){
+    if(!l.trim()){
+      if(inChips){html+='</div>';inChips=false;}
+      if(inSettings){html+='</div>';inSettings=false;}
+      continue;
+    }
+    if(l.match(/^#{2,4}\s/)){
+      if(inChips){html+='</div>';inChips=false;}
+      if(inSettings){html+='</div>';inSettings=false;}
+      html+=`<div class="sub-head">${l.replace(/^#+\s*/,'')}</div>`;
+    } else if(l.match(/^\d+\.\s/)&&!l.match(/^\d+\.\s+\*\*/)){
+      if(inSettings){html+='</div>';inSettings=false;}
+      if(!inChips){html+='<div class="kw-grid">';inChips=true;}
+      const kw=l.replace(/^\d+\.\s*/,'').replace(/`/g,'');
+      const id=storeCopy(kw);
+      html+=`<span class="kw-chip" onclick="quickCopy(this,'${id}')" title="Click to copy">${kw}</span>`;
+    } else if(l.match(/^[-*]\s+\*\*/) && l.match(/\*\*.*\*\*/)){
+      // Settings row: **Key:** value
+      if(inChips){html+='</div>';inChips=false;}
+      if(!inSettings){html+='<div class="settings-box"><div class="settings-title">KDP Interior Settings</div>';inSettings=true;}
+      const m=l.match(/\*\*(.+?)\*\*[:\s]+(.*)/);
+      if(m) html+=`<div class="settings-row"><span class="settings-key">${m[1]}</span><span class="settings-val">${inline(m[2])}</span></div>`;
+      else html+=`<p>• ${inline(l.replace(/^[-*]\s/,''))}</p>`;
+    } else {
+      if(inChips){html+='</div>';inChips=false;}
+      if(inSettings){html+='</div>';inSettings=false;}
+      if(l.match(/^[-*]\s/)) html+=`<p>• ${inline(l.replace(/^[-*]\s/,''))}</p>`;
+      else html+=`<p>${inline(l)}</p>`;
+    }
+  }
+  if(inChips)html+='</div>';
+  if(inSettings)html+='</div>';
+  html+='</div>';
+  return html;
+}
+
+// ── RENDER NEXT STEPS ────────────────────────────────────────────────────
+function renderStepsSection(text){
+  const lines=text.split('\n');
+  let html='<div class="sec-body">';
+  for(const l of lines){
+    if(!l.trim())continue;
+    const stepM=l.match(/^(\d+)\.\s+\*\*(.+?)\*\*[:\s]*(.*)/);
+    const stepM2=l.match(/^\*\*Step\s+(\d+)[:\*\s]+(.+?)\*\*[:\s]*(.*)/i);
+    if(stepM){
+      html+=`<div class="step-card"><div class="step-badge">${stepM[1]}</div><div class="step-content"><strong>${stepM[2]}</strong>${stepM[3]?`<p>${inline(stepM[3])}</p>`:''}</div></div>`;
+    } else if(stepM2){
+      html+=`<div class="step-card"><div class="step-badge">${stepM2[1]}</div><div class="step-content"><strong>${stepM2[2]}</strong>${stepM2[3]?`<p>${inline(stepM2[3])}</p>`:''}</div></div>`;
+    } else if(l.match(/^#{2,4}\s/)){
+      html+=`<div class="sub-head">${l.replace(/^#+\s*/,'')}</div>`;
+    } else {
+      html+=`<p>${inline(l)}</p>`;
+    }
+  }
+  html+='</div>';
+  return html;
+}
+
+// ── DEFAULT RENDERER ─────────────────────────────────────────────────────
+function renderDefault(text){
+  const lines=text.split('\n');
+  let html='',inUl=false;
+  for(const l of lines){
+    if(!l.trim()){if(inUl){html+='</ul>';inUl=false;}continue;}
+    if(l.match(/^#{2,4}\s/)){if(inUl){html+='</ul>';inUl=false;}html+=`<div class="sub-head">${l.replace(/^#+\s*/,'')}</div>`;}
+    else if(l.match(/^[-*]\s/)){if(!inUl){html+='<ul>';inUl=true;}html+=`<li>${inline(l.replace(/^[-*]\s/,''))}</li>`;}
+    else if(l.match(/^> /)){if(inUl){html+='</ul>';inUl=false;}html+=`<blockquote>${inline(l.slice(2))}</blockquote>`;}
+    else if(l.match(/^---/)){if(inUl){html+='</ul>';inUl=false;}html+='<hr>';}
+    else{if(inUl){html+='</ul>';inUl=false;}html+=`<p>${inline(l)}</p>`;}
+  }
+  if(inUl)html+='</ul>';
+  return html;
+}
+
+// ── RENDER ALL SECTIONS ──────────────────────────────────────────────────
+function renderSections(text){
+  const ob=document.getElementById('outBody');
+  ob.innerHTML='';
+  const raw=text.split(/^## /m).filter(Boolean);
+  raw.forEach((part,i)=>{
+    const nl=part.indexOf('\n');
+    const titleRaw=nl>-1?part.slice(0,nl).trim():part.trim();
+    const body=nl>-1?part.slice(nl+1).trim():'';
+    const icon=SECTION_ICONS[i]||'📄';
+    const color=SECTION_COLORS[i]||'#1A1714';
+    const title=titleRaw.replace(/^[^\w\s]+\s*/,'').replace(/^\d+\.\s*/,'');
+
+    const card=document.createElement('div');
+    card.className='sec-card';
+
+    const head=document.createElement('div');
+    head.className='sec-head';
+    head.style.background=color;
+    head.innerHTML=`<div class="sec-head-left"><span class="sec-icon">${icon}</span><span class="sec-title">${title}</span></div><button class="sec-copy-btn" onclick="copySection(this)">Copy section</button>`;
+    head.querySelector('.sec-copy-btn')._raw=body;
+
+    const bodyWrap=document.createElement('div');
+
+    // Route to the right renderer based on title keywords
+    const tl=title.toLowerCase();
+    if(tl.includes('cover')){
+      bodyWrap.innerHTML=renderCoverSection(body);
+    } else if(tl.includes('page')&&(tl.includes('description')||tl.includes('coloring')||tl.includes('art prompt'))){
+      bodyWrap.innerHTML=renderPagesSection(body);
+    } else if(tl.includes('kdp')||tl.includes('publishing kit')||tl.includes('amazon')){
+      bodyWrap.innerHTML=renderKDPSection(body);
+    } else if(tl.includes('next')||tl.includes('step')){
+      bodyWrap.innerHTML=renderStepsSection(body);
+    } else {
+      bodyWrap.innerHTML=`<div class="sec-body">${renderDefault(body)}</div>`;
+    }
+
+    card.appendChild(head);
+    card.appendChild(bodyWrap);
+    ob.appendChild(card);
+  });
+}
+
+function copySection(btn){
+  const text=btn._raw||btn.closest('.sec-card').querySelector('.sec-body')?.innerText||'';
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent='Copied!';btn.classList.add('done');
+    setTimeout(()=>{btn.textContent='Copy section';btn.classList.remove('done');},2000);
+  });
+}
+
+function copyAll(){
+  const t=document.getElementById('outBody').innerText;
+  navigator.clipboard.writeText(t).then(()=>{
+    const b=document.getElementById('copyBtn');
+    b.textContent='Copied!';setTimeout(()=>b.textContent='Copy all',2000);
+  });
+}
+
+function downloadBlueprint(){
+  const title=document.getElementById('outTitle').textContent;
+  const content=document.getElementById('outBody').innerHTML;
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=DM+Sans:wght@400;500&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'DM Sans',sans-serif;color:#1A1714;padding:40px;max-width:860px;margin:0 auto;}
+    h1{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:400;margin-bottom:6px;}
+    .sub{font-size:12px;color:#8A8480;margin-bottom:10px;}
+    .spec{font-size:11px;color:#8A6A22;margin-bottom:32px;padding:8px 14px;background:#FBF8F1;border-left:3px solid #C9A84C;border-radius:0 5px 5px 0;}
+    .sec-card{margin-bottom:28px;border:1px solid #E8E4DC;border-radius:12px;overflow:hidden;break-inside:avoid;}
+    .sec-head{padding:12px 20px;color:#fff;font-family:'Cormorant Garamond',serif;font-size:16px;}
+    .sec-body{padding:18px 22px;font-size:13.5px;line-height:1.7;color:#4A4540;}
+    .sec-body p{margin-bottom:8px;} .sec-body ul{padding-left:18px;margin-bottom:8px;} .sec-body li{margin-bottom:4px;}
+    .sub-head{font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#8A6A22;margin:14px 0 6px;}
+    .page-card{border:1px solid #E8E4DC;border-radius:10px;margin-bottom:12px;overflow:hidden;break-inside:avoid;}
+    .page-card-head{background:#F5F1EB;padding:10px 14px;display:flex;gap:10px;align-items:center;}
+    .page-card-num{font-size:10px;font-weight:600;color:#8A6A22;text-transform:uppercase;letter-spacing:0.06em;}
+    .page-card-title{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:500;color:#1A1714;}
+    .page-card-body{padding:12px 16px;background:#fff;}
+    .page-desc{font-size:13px;color:#4A4540;line-height:1.65;margin-bottom:10px;}
+    .scripture-strip{background:#FBF8F1;border-left:3px solid #C9A84C;padding:8px 12px;margin-bottom:10px;font-size:12.5px;color:#4A4540;font-style:italic;border-radius:0 6px 6px 0;}
+    .prompt-block{background:#1A1714;border-radius:8px;padding:11px 14px;margin-bottom:6px;}
+    .prompt-block-label{font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#C9A84C;margin-bottom:6px;}
+    .prompt-block-text{font-size:11.5px;color:rgba(250,247,242,0.85);line-height:1.6;font-family:monospace;}
+    .swatch{display:inline-flex;align-items:center;gap:8px;padding:5px 10px;background:#F5F1EB;border:1px solid #E8E4DC;border-radius:6px;margin:3px;}
+    .swatch-dot{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,0.1);}
+    .swatch-name{font-size:11px;font-weight:500;color:#1A1714;} .swatch-hex{font-size:10px;color:#8A8480;font-family:monospace;}
+    .ai-prompt-box{background:#1A1714;border-radius:8px;padding:12px 14px;margin:8px 0 12px;}
+    .ai-prompt-label{font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#C9A84C;margin-bottom:6px;}
+    .ai-prompt-text{font-size:11.5px;color:rgba(250,247,242,0.85);line-height:1.6;font-family:monospace;}
+    .kw-grid{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px;}
+    .kw-chip{font-size:11.5px;padding:5px 12px;background:#F5F1EB;border:1px solid #E8E4DC;border-radius:100px;color:#4A4540;}
+    .step-card{display:flex;gap:12px;padding:12px;background:#F5F1EB;border-radius:8px;margin-bottom:8px;}
+    .step-badge{width:26px;height:26px;background:#1A1714;color:#F0DFA0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;}
+    .settings-box{background:#F5F1EB;border:1px solid #E8E4DC;border-radius:8px;padding:12px 16px;margin-bottom:12px;}
+    .settings-row{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid #E8E4DC;font-size:12.5px;}
+    .settings-row:last-child{border-bottom:none;}
+    .settings-key{color:#8A8480;min-width:150px;font-size:12px;} .settings-val{color:#1A1714;font-weight:500;}
+    button{display:none;}
+    @media print{body{padding:20px;}.page-card,.sec-card{page-break-inside:avoid;}}
+  </style></head><body>
+  <h1>${title}</h1>
+  <p class="sub">Generated by Coloring Book Creator AI · Faith Driven Bosses</p>
+  <p class="spec">KDP: 8.5 × 11 inches · Single-sided pages · 300 DPI · Bleed 0.125 inch</p>
+  ${content}
+  </body></html>`;
+  const blob=new Blob([html],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=title.replace(/[^a-z0-9]/gi,'_').toLowerCase()+'_blueprint.html';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+let animInt;
+function startAnim(){
+  const ids=['ls1','ls2','ls3','ls4'];let i=0;
+  ids.forEach(id=>document.getElementById(id).classList.remove('done'));
+  animInt=setInterval(()=>{if(i<ids.length)document.getElementById(ids[i++]).classList.add('done');else clearInterval(animInt);},5500);
+}
+
+async function callAPI(system,userMsg){
+  const res=await fetch('https://journal-creator-ai.delicia-egboh.workers.dev',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:8192,system,messages:[{role:'user',content:userMsg}]})
+  });
+  const data=await res.json();
+  if(data.content&&data.content[0])return data.content[0].text;
+  throw new Error('No content returned');
+}
+
+async function generate(){
+  const theme=document.getElementById('theme').value.trim();
+  const audience=document.getElementById('audience').value.trim();
+  if(!theme||!audience){document.getElementById(!theme?'theme':'audience').focus();return;}
+  const style=document.getElementById('style').value;
+  const numPages=document.getElementById('numPages').value;
+  const faith=document.getElementById('faith').checked;
+  const notes=document.getElementById('notes').value.trim();
+
+  const btn=document.getElementById('genBtn');
+  btn.disabled=true;
+  btn.innerHTML='<div style="width:15px;height:15px;border:2px solid rgba(240,223,160,0.25);border-top-color:#F0DFA0;border-radius:50%;animation:spin 0.75s linear infinite;flex-shrink:0;"></div> Generating…';
+
+  const os=document.getElementById('outputSection');
+  const ld=document.getElementById('loadingEl');
+  const ob=document.getElementById('outBody');
+  os.classList.add('visible');ld.classList.add('visible');ob.innerHTML='';
+  document.getElementById('outTitle').textContent=theme+' — '+audience+' Coloring Book';
+  os.scrollIntoView({behavior:'smooth',block:'start'});
+  startAnim();
+
+  const STYLE_SUFFIX=`--ar 17:22 --style raw --no color, shading, grey fills, gradients --v 6`;
+  const DALLE_SUFFIX=`Black and white line art only. No grey fills. No shading. No colour. Pure black lines on pure white background. Adult coloring book page style. 300 DPI. 8.5x11 inch page.`;
+
+  const half=Math.ceil(parseInt(numPages)/2);
+  const secondHalfStart=half+1;
+
+  const system=`You are Coloring Book Creator AI — a premium coloring book product creation system for Amazon KDP.
+
+CRITICAL KDP SPECS — embed in every relevant section:
+- Page size: 8.5 x 11 inches (NOT 6 x 9)
+- Single-sided coloring pages ONLY — blank back page after every coloring page
+- Resolution: 300 DPI minimum
+- Bleed: 0.125 inch on all sides
+- Interior: pure black line art on white — NO grey fills, NO shading
+- Page count must be even
+
+RULES:
+- Never produce vague or generic content — every page must be distinct and specific
+- AI prompts must be copy-paste ready — no placeholders, no instructions inside the prompt
+- Use markdown: ## for sections, ### for page headings, **bold** for labels
+${faith?'Faith: YES — include a NKJV scripture verse for every coloring page.':'Faith: NO — secular, uplifting content only.'}`;
+
+  const context=`Theme: ${theme}
+Audience: ${audience}
+Style: ${style}
+Pages: ${numPages} coloring pages total
+Faith-based: ${faith?'Yes':'No'}
+Size: 8.5 x 11 inches, single-sided
+${notes?`Notes: ${notes}`:''}`;
+
+  const PAGE_FORMAT=`### Page [N]: [Scene Title]
+**Description:** [2–3 vivid specific sentences describing the illustration]
+${faith?'**Scripture:** [Book Chapter:Verse NKJV] — "[full verse text]"':''}
+**Midjourney Prompt:**
+\`\`\`
+[Full ready-to-use prompt. Scene + ${style} style + intricate black line art, fine detailed linework, dense pattern fills, clean white background, no color no shading no grey, adult coloring book page. End with: ${STYLE_SUFFIX}]
+\`\`\`
+**DALL-E Prompt:**
+\`\`\`
+[Full ready-to-use prompt for same scene. ${DALLE_SUFFIX}]
+\`\`\``;
+
+  // ── CALL 1: Concept + Titles + Layout + Cover ─────────────────────
+  const user1=`${context}
+
+Produce sections 1, 2, 3, and 4 ONLY. Stop after section 4.
+
+## 🎨 1. Product Concept & Positioning
+- One-line product promise
+- Who it's for — specific desires and needs (3–4 sentences)
+- What makes it different from generic options on Amazon
+- KDP specs confirmed: 8.5x11, single-sided, ${numPages} coloring pages + ${numPages} blank backs + front/back matter = [calculate total even page count]
+
+## 🎯 2. Title & Subtitle Options
+5 title + subtitle combinations. Format: **Title: Subtitle**
+Include "Coloring Book" in at least 3 titles. Recommend one and explain why in 2 sentences.
+
+## 📐 3. Interior Layout & Page Count
+List every page type in order. Format: **[Page Type]** — description | qty
+Include: interior cover, copyright page, how-to-use page, ${numPages} coloring pages (single-sided), ${numPages} blank back pages, notes page, back cover interior.
+Confirm total even page count at the end.
+
+## 🖌️ 4. Cover Design Direction
+
+**Mood:** 2 sentences describing the visual feel of the cover.
+
+**Colour Palette** — 4 hex colours specific to this theme and audience. Format EXACTLY like this, one per line:
+- Colour Name: #HEXCODE — reason it fits this theme and audience
+
+**Typography:** font style for title and subtitle.
+
+**Cover imagery:** what appears on the front cover — specific, visual, 2–3 sentences.
+
+### ChatGPT / DALL-E Prompt
+[Full cover prompt. Spell out the exact book title and subtitle word for word with font style, colour hex and placement. Cover illustration in detail. All 4 hex colours. Mood and lighting. End with: 8.5x11 inch book cover, 300dpi, print-ready, high resolution, professional design.]
+
+### Midjourney Prompt
+[Full cover prompt. Exact title and subtitle, all 4 hex colours, illustration, mood. End with: --ar 17:22 --style raw --v 6]
+
+### Canva AI Prompt
+[Full cover prompt. Exact title and subtitle, hex colours, illustration detail, mood. End with: 8.5x11 inch book cover format, print-ready.]`;
+
+  // ── CALL 2: Pages 1 to half ───────────────────────────────────────
+  const user2=`${context}
+
+Produce ONLY section 5 — the first ${half} coloring pages (pages 1 to ${half}).
+Do NOT produce any other sections. Start immediately with the ## heading below.
+
+## 🖼️ 5. Coloring Pages — Descriptions & AI Art Prompts (Pages 1–${half})
+
+For each of the ${half} pages below, use EXACTLY this format:
+
+${PAGE_FORMAT}
+
+Produce pages 1 through ${half}. Every page must be distinct. Do not skip or combine any.`;
+
+  // ── CALL 3: Pages (half+1) to end + KDP + Steps ───────────────────
+  const user3=`${context}
+
+Produce sections 6 and 7 ONLY. Start with pages ${secondHalfStart} to ${numPages}, then KDP kit, then next steps.
+
+## 🖼️ 6. Coloring Pages — Descriptions & AI Art Prompts (Pages ${secondHalfStart}–${numPages})
+
+For each page, use EXACTLY this format:
+
+${PAGE_FORMAT}
+
+Produce pages ${secondHalfStart} through ${numPages}. Every page must be distinct from the first ${half} pages.
+
+## 💰 7. Amazon KDP Publishing Kit
+
+**KDP Interior Settings:**
+- **Trim size:** 8.5 x 11 inches
+- **Interior type:** Black & white
+- **Paper:** White (80gsm — do not select cream for coloring books)
+- **Bleed:** Yes — 0.125 inch all sides
+- **Single-sided pages:** Yes — blank page after every coloring page
+- **Cover finish:** Matte recommended
+
+**10 SEO keyword phrases** — numbered list, one per line
+
+**Amazon listing title** — under 200 characters, include "coloring book" and primary keyword
+
+**Amazon listing description** — 150–200 words, benefit-driven, short paragraphs, mention 8.5x11 size and page count
+
+**Pricing:**
+- Paperback: $[X] — coloring books typically $9.99–$14.99
+- PDF download: $[X]
+
+**KDP Browse Categories:** 2 specific categories
+
+## 🚀 8. Your Next 3 Steps
+**1. [Step title]** — specific action for this coloring book
+**2. [Step title]** — specific action
+**3. [Step title]** — specific action`;
+
+  try{
+    // Run call 1 first (concept + cover), then calls 2+3 in parallel
+    const result1=await callAPI(system,user1);
+    document.getElementById('ls2').classList.add('done');
+    const [result2,result3]=await Promise.all([callAPI(system,user2),callAPI(system,user3)]);
+    clearInterval(animInt);
+    ld.classList.remove('visible');
+
+    // Combine: Concept/Titles/Layout/Cover | Pages 1-half | Pages half+1-end/KDP/Steps
+    // Strip the duplicate ## 5 header from result3 since result2 already has the section
+    const cleanResult3=result3.replace(/^##\s+🖼️[^\n]*Pages[^\n]*${secondHalfStart}[^\n]*/m,'').trim();
+    const combined=result1.trim()+'\n\n'+result2.trim()+'\n\n'+cleanResult3;
+    const stripped=combined.replace(/^[\s\S]*?(?=^## )/m,'');
+    renderSections(stripped||combined);
+  }catch(e){
+    clearInterval(animInt);
+    ld.classList.remove('visible');
+    ob.innerHTML='<p style="color:var(--ink-muted);padding:24px;">Connection error. Please try again.</p>';
+    console.error(e);
+  }
+
+  btn.disabled=false;
+  btn.innerHTML='<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Generate Again';
+}
+
+// ── SAVE BLUEPRINT ────────────────────────────────────────────────────────
+(function(){
+  const STORAGE_KEY='cbcai_blueprints';
+  const _origRender=renderSections;
+  renderSections=function(text){
+    _origRender(text);
+    window._lastBlueprintRaw=text;
+    const sb=document.getElementById('saveBtn');
+    if(sb&&sb.textContent==='Saved ✓'){sb.textContent='Save Blueprint';sb.style.color='';}
+  };
+  function getAll(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');}catch(e){return[];}}
+  function saveAll(arr){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(arr));}catch(e){alert('Storage full — delete some saved blueprints.');}}
+  function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  window.saveBlueprint=function(){
+    const raw=window._lastBlueprintRaw;if(!raw)return;
+    const title=document.getElementById('outTitle').textContent||'Untitled';
+    const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    const list=getAll();list.unshift({id:Date.now(),title,date,raw});saveAll(list);updateBadge();
+    const sb=document.getElementById('saveBtn');
+    if(sb){sb.textContent='Saved ✓';sb.style.color='#9FE1CB';setTimeout(()=>{sb.textContent='Save Blueprint';sb.style.color='';},2000);}
+  };
+  window.loadBlueprint=function(id){
+    const e=getAll().find(b=>b.id===id);if(!e)return;
+    const os=document.getElementById('outputSection');
+    const ld=document.getElementById('loadingEl');
+    os.classList.add('visible');if(ld)ld.classList.remove('visible');
+    document.getElementById('outTitle').textContent=e.title;
+    renderSections(e.raw);toggleSavedPanel();
+    os.scrollIntoView({behavior:'smooth',block:'start'});
+  };
+  window.deleteBlueprint=function(id,ev){
+    ev.stopPropagation();
+    if(!confirm('Delete this blueprint?'))return;
+    saveAll(getAll().filter(b=>b.id!==id));updateBadge();renderSavedList();
+  };
+  function renderSavedList(){
+    const list=document.getElementById('savedList');if(!list)return;
+    const items=getAll();
+    if(!items.length){list.innerHTML='<div class="saved-empty"><strong>No saved blueprints yet</strong><p>Generate a blueprint then click "Save Blueprint" to save it here.</p></div>';return;}
+    list.innerHTML=items.map(b=>`<div class="saved-item"><div class="saved-item-title">${escHtml(b.title)}</div><div class="saved-item-meta">${escHtml(b.date)}</div><div class="saved-item-btns"><button class="sav-load" onclick="loadBlueprint(${b.id})">Load</button><button class="sav-del" onclick="deleteBlueprint(${b.id},event)">Delete</button></div></div>`).join('');
+  }
+  window.toggleSavedPanel=function(){
+    const p=document.getElementById('savedPanel'),o=document.getElementById('savedOverlay');
+    const open=p.classList.contains('open');
+    if(open){p.classList.remove('open');o.classList.remove('open');}
+    else{renderSavedList();p.classList.add('open');o.classList.add('open');}
+  };
+  function updateBadge(){
+    const b=document.getElementById('saveBadge');if(!b)return;
+    const n=getAll().length;
+    if(n>0){b.textContent=n;b.classList.add('visible');}else b.classList.remove('visible');
+  }
+  updateBadge();
+})();
+</script>
+</body>
+</html>
